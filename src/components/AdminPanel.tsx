@@ -202,12 +202,17 @@ export default function AdminPanel({ isOpen, onClose, onRefreshMainPage }: Admin
     e.preventDefault();
     if (!title.trim() || !description.trim()) return;
 
+    const parsedTags = tagsInput
+      .split(',')
+      .map(t => t.trim())
+      .filter(t => t.length > 0);
+
     const payload = {
       title: title.trim(),
       description: description.trim(),
-      tags: editingProject ? (editingProject.tags || []) : [],
+      tags: parsedTags,
       link: link.trim(),
-      github: '',
+      github: github.trim(),
       image_url: imageUrl.trim() || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop',
       featured,
     };
@@ -641,13 +646,40 @@ CREATE TABLE IF NOT EXISTS messages (
                 </div>
 
                 {/* Link */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-slate-400 font-mono text-[9px] uppercase block mb-1">Adres URL projektu</label>
+                    <input
+                      id="editor-link"
+                      type="text"
+                      value={link}
+                      onChange={(e) => setLink(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 text-slate-100 rounded-lg text-xs focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-400 font-mono text-[9px] uppercase block mb-1">Adres URL GitHub (Kod źródłowy)</label>
+                    <input
+                      id="editor-github"
+                      type="text"
+                      value={github}
+                      onChange={(e) => setGithub(e.target.value)}
+                      placeholder="https://github.com/..."
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 text-slate-100 rounded-lg text-xs focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Tags */}
                 <div>
-                  <label className="text-slate-400 font-mono text-[9px] uppercase block mb-1">Adres URL projektu</label>
+                  <label className="text-slate-400 font-mono text-[9px] uppercase block mb-1">Tagi technologii (rozdzielone przecinkami) *</label>
                   <input
-                    id="editor-link"
+                    id="editor-tags"
                     type="text"
-                    value={link}
-                    onChange={(e) => setLink(e.target.value)}
+                    required
+                    value={tagsInput}
+                    onChange={(e) => setTagsInput(e.target.value)}
+                    placeholder="React, TypeScript, Tailwind"
                     className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 text-slate-100 rounded-lg text-xs focus:outline-none focus:border-indigo-500"
                   />
                 </div>

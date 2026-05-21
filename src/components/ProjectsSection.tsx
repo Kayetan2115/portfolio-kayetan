@@ -212,9 +212,22 @@ export default function ProjectsSection({ projects, isLoading }: ProjectsSection
                 </button>
               </div>
 
-              <h3 className="text-2xl font-bold text-white mb-3">
+              <h3 className="text-2xl font-bold text-white mb-2">
                 {activeProject.title}
               </h3>
+
+              {activeProject.tags && activeProject.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-4">
+                  {activeProject.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 rounded font-mono text-[9px] uppercase tracking-wider"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               <p className="text-slate-300 text-xs md:text-sm leading-relaxed mb-6">
                 {activeProject.description}
@@ -227,10 +240,21 @@ export default function ProjectsSection({ projects, isLoading }: ProjectsSection
                     href={activeProject.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-sky-500 hover:bg-sky-400 text-white font-semibold rounded-xl text-xs transition"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-sky-500 hover:bg-sky-400 text-white font-semibold rounded-xl text-xs transition select-none cursor-pointer"
                   >
                     <Globe className="w-4 h-4" />
                     Zobacz Live Demo
+                  </a>
+                )}
+                {activeProject.github && activeProject.github !== 'https://github.com/' && (
+                  <a
+                    href={activeProject.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-300 hover:text-white font-semibold rounded-xl text-xs transition select-none cursor-pointer"
+                  >
+                    <Github className="w-4 h-4" />
+                    Kod źródłowy (GitHub)
                   </a>
                 )}
               </div>
