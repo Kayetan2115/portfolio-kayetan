@@ -269,7 +269,7 @@ CREATE TABLE IF NOT EXISTS messages (
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" key="admin-panel-overlay-wrap">
           <motion.div
             id="admin-panel-overlay"
             initial={{ opacity: 0 }}
@@ -583,7 +583,7 @@ CREATE TABLE IF NOT EXISTS messages (
       {/* Embedded Project Editor Form Dialog (Nested) */}
       <AnimatePresence>
         {isEditorOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" key="admin-editor-overlay-wrap">
             <motion.div
               id="admin-editor-overlay"
               initial={{ opacity: 0 }}

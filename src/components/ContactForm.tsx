@@ -124,6 +124,7 @@ export default function ContactForm({ onOpenPrivacy }: ContactFormProps) {
           <AnimatePresence mode="wait">
             {submitSuccess ? (
               <motion.div
+                key="contact-success"
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
@@ -149,7 +150,7 @@ export default function ContactForm({ onOpenPrivacy }: ContactFormProps) {
                 </motion.button>
               </motion.div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form key="contact-form" onSubmit={handleSubmit} className="space-y-4">
                 {/* Name */}
                 <div className="space-y-1">
                   <label htmlFor="input-name" className="text-slate-400 font-mono text-[10px] tracking-wider uppercase block">

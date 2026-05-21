@@ -80,6 +80,7 @@ export default function CookieBanner({ onOpenPrivacyPolicy }: CookieBannerProps)
     <AnimatePresence>
       {showBanner && (
         <motion.div
+          key="cookie-consent-bar"
           id="cookie-consent-bar"
           initial={{ y: 150, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

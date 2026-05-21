@@ -176,7 +176,7 @@ export default function ProjectsSection({ projects, isLoading }: ProjectsSection
       {/* Details Modal Dialog */}
       <AnimatePresence>
         {activeProject && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" key={`project-details-wrap-${activeProject.id}`}>
             <motion.div
               id="project-detail-overlay"
               initial={{ opacity: 0 }}

@@ -10,7 +10,7 @@ export default function PrivacyPolicyDialog({ isOpen, onClose }: PrivacyPolicyPr
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" key="privacy-policy-dialog-wrap">
           {/* Overlay */}
           <motion.div
             id="privacy-policy-overlay"
