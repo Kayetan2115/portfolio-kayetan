@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 const meta = import.meta as any;
-const supabaseUrl = meta.env?.VITE_SUPABASE_URL || '';
+const supabaseUrl = meta.env?.VITE_SUPABASE_URL || meta.env?.NEXT_PUBLIC_VITE_SUPABASE_URL || '';
 const supabaseAnonKey = meta.env?.VITE_SUPABASE_ANON_KEY || meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY || '';
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
