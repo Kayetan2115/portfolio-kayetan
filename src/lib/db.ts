@@ -59,6 +59,11 @@ export const getDbSource = (): 'Supabase Cloud DB' | 'Local Secure Storage (Fall
 };
 
 export const getProjects = async (): Promise<Project[]> => {
+  // Always prime / seed and get local storage projects
+  seedLocalStorage();
+  const rawLocal = localStorage.getItem('kayetan_projects');
+  const localProjects: Project[] = rawLocal ? JSON.parse(rawLocal) : INITIAL_PROJECTS;
+
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase
@@ -67,16 +72,43 @@ export const getProjects = async (): Promise<Project[]> => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      if (data) return data as Project[];
+      if (data) {
+        const supabaseProjects = data as Project[];
+        
+        // Merge Supabase and Local Storage projects to prevent data loss
+        // We match by ID to ensure any locally edited or offline-created projects are preserved
+        const merged = [...supabaseProjects];
+        for (const localProj of localProjects) {
+          if (!merged.some(p => p.id === localProj.id)) {
+            merged.push(localProj);
+          } else {
+            // If it exists in both, update local storage with the Supabase version to keep in sync
+            const localIdx = localProjects.findIndex(p => p.id === localProj.id);
+            const supaProj = supabaseProjects.find(p => p.id === localProj.id);
+            if (localIdx !== -1 && supaProj) {
+              localProjects[localIdx] = supaProj;
+            }
+          }
+        }
+        
+        // Persist the synced state back to local storage
+        localStorage.setItem('kayetan_projects', JSON.stringify(localProjects));
+
+        // Sort by created_at desc
+        merged.sort((a, b) => {
+          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return dateB - dateA;
+        });
+
+        return merged;
+      }
     } catch (err) {
-      console.error('Supabase query failed, using localStorage fallback:', err);
+      console.error('Supabase query failed, returning local storage backup:', err);
     }
   }
 
-  // Fallback to localStorage
-  seedLocalStorage();
-  const raw = localStorage.getItem('kayetan_projects');
-  return raw ? JSON.parse(raw) : INITIAL_PROJECTS;
+  return localProjects;
 };
 
 export const createProject = async (project: Omit<Project, 'id'>): Promise<Project> => {
@@ -86,6 +118,13 @@ export const createProject = async (project: Omit<Project, 'id'>): Promise<Proje
     created_at: new Date().toISOString()
   };
 
+  // 1. First, secure local backup instantly so user never loses their progress
+  seedLocalStorage();
+  const projects = JSON.parse(localStorage.getItem('kayetan_projects') || '[]');
+  projects.unshift(newProject);
+  localStorage.setItem('kayetan_projects', JSON.stringify(projects));
+
+  // 2. Effort to synchronize with Supabase Cloud
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase
@@ -94,21 +133,31 @@ export const createProject = async (project: Omit<Project, 'id'>): Promise<Proje
         .select();
       
       if (error) throw error;
-      if (data && data[0]) return data[0] as Project;
+      if (data && data[0]) {
+        // Update local with the official cloud record is ideal
+        const updatedLocal = projects.map((p: Project) => p.id === newProject.id ? (data[0] as Project) : p);
+        localStorage.setItem('kayetan_projects', JSON.stringify(updatedLocal));
+        return data[0] as Project;
+      }
     } catch (err) {
-      console.error('Supabase insert failed, attempting localStorage:', err);
+      console.error('Supabase insert failed, local storage backup is active:', err);
     }
   }
 
-  // Fallback to localStorage
-  seedLocalStorage();
-  const projects = JSON.parse(localStorage.getItem('kayetan_projects') || '[]');
-  projects.unshift(newProject);
-  localStorage.setItem('kayetan_projects', JSON.stringify(projects));
   return newProject;
 };
 
 export const updateProject = async (project: Project): Promise<Project> => {
+  // 1. Update local storage immediately for real-time interactive safety
+  seedLocalStorage();
+  const projects: Project[] = JSON.parse(localStorage.getItem('kayetan_projects') || '[]');
+  const idx = projects.findIndex(p => p.id === project.id);
+  if (idx !== -1) {
+    projects[idx] = project;
+    localStorage.setItem('kayetan_projects', JSON.stringify(projects));
+  }
+
+  // 2. Synchronize to Supabase Cloud
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase
@@ -118,24 +167,30 @@ export const updateProject = async (project: Project): Promise<Project> => {
         .select();
       
       if (error) throw error;
-      if (data && data[0]) return data[0] as Project;
+      if (data && data[0]) {
+        // Sync local record if cloud responds with updated details
+        if (idx !== -1) {
+          projects[idx] = data[0] as Project;
+          localStorage.setItem('kayetan_projects', JSON.stringify(projects));
+        }
+        return data[0] as Project;
+      }
     } catch (err) {
-      console.error('Supabase update failed, attempting localStorage:', err);
+      console.error('Supabase update failed, local storage changes preserved:', err);
     }
   }
 
-  // Fallback to localStorage
-  seedLocalStorage();
-  const projects: Project[] = JSON.parse(localStorage.getItem('kayetan_projects') || '[]');
-  const idx = projects.findIndex(p => p.id === project.id);
-  if (idx !== -1) {
-    projects[idx] = project;
-    localStorage.setItem('kayetan_projects', JSON.stringify(projects));
-  }
   return project;
 };
 
 export const deleteProject = async (id: string): Promise<boolean> => {
+  // 1. Remove from local storage immediately so UI feels instantaneous
+  seedLocalStorage();
+  const projects: Project[] = JSON.parse(localStorage.getItem('kayetan_projects') || '[]');
+  const filtered = projects.filter(p => p.id !== id);
+  localStorage.setItem('kayetan_projects', JSON.stringify(filtered));
+
+  // 2. Synchronize deletion with Supabase Cloud
   if (isSupabaseConfigured && supabase) {
     try {
       const { error } = await supabase
@@ -146,19 +201,18 @@ export const deleteProject = async (id: string): Promise<boolean> => {
       if (!error) return true;
       throw error;
     } catch (err) {
-      console.error('Supabase delete failed, attempting localStorage:', err);
+      console.error('Supabase delete failed, local storage delete completed:', err);
     }
   }
 
-  // Fallback to localStorage
-  seedLocalStorage();
-  const projects: Project[] = JSON.parse(localStorage.getItem('kayetan_projects') || '[]');
-  const filtered = projects.filter(p => p.id !== id);
-  localStorage.setItem('kayetan_projects', JSON.stringify(filtered));
   return true;
 };
 
 export const getMessages = async (): Promise<ContactMessage[]> => {
+  seedLocalStorage();
+  const rawLocal = localStorage.getItem('kayetan_messages');
+  const localMessages: ContactMessage[] = rawLocal ? JSON.parse(rawLocal) : [];
+
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase
@@ -167,16 +221,29 @@ export const getMessages = async (): Promise<ContactMessage[]> => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      if (data) return data as ContactMessage[];
+      if (data) {
+        const supabaseMessages = data as ContactMessage[];
+        
+        // Merge Supabase and Local Messages to prevent lose of form inquiries
+        const merged = [...supabaseMessages];
+        for (const localMsg of localMessages) {
+          if (!merged.some(m => m.id === localMsg.id)) {
+            merged.push(localMsg);
+          }
+        }
+
+        // Persist synced data Locally
+        localStorage.setItem('kayetan_messages', JSON.stringify(merged));
+
+        merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        return merged;
+      }
     } catch (err) {
-      console.error('Supabase fetch messages failed, using localStorage fallback:', err);
+      console.error('Supabase fetch messages failed, returning local storage backup:', err);
     }
   }
 
-  // Fallback to localStorage
-  seedLocalStorage();
-  const raw = localStorage.getItem('kayetan_messages');
-  return raw ? JSON.parse(raw) : [];
+  return localMessages;
 };
 
 export const createMessage = async (msg: Omit<ContactMessage, 'id' | 'created_at'>): Promise<ContactMessage> => {
@@ -186,6 +253,13 @@ export const createMessage = async (msg: Omit<ContactMessage, 'id' | 'created_at
     created_at: new Date().toISOString()
   };
 
+  // 1. Save to local storage right away
+  seedLocalStorage();
+  const messages = JSON.parse(localStorage.getItem('kayetan_messages') || '[]');
+  messages.unshift(newMessage);
+  localStorage.setItem('kayetan_messages', JSON.stringify(messages));
+
+  // 2. Attempt sync to Supabase
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase
@@ -194,21 +268,26 @@ export const createMessage = async (msg: Omit<ContactMessage, 'id' | 'created_at
         .select();
       
       if (error) throw error;
-      if (data && data[0]) return data[0] as ContactMessage;
+      if (data && data[0]) {
+        const updatedLocal = messages.map((m: ContactMessage) => m.id === newMessage.id ? (data[0] as ContactMessage) : m);
+        localStorage.setItem('kayetan_messages', JSON.stringify(updatedLocal));
+        return data[0] as ContactMessage;
+      }
     } catch (err) {
-      console.error('Supabase message insert failed, attempting localStorage:', err);
+      console.error('Supabase message insert failed, local storage backup active:', err);
     }
   }
 
-  // Fallback to localStorage
-  seedLocalStorage();
-  const messages = JSON.parse(localStorage.getItem('kayetan_messages') || '[]');
-  messages.unshift(newMessage);
-  localStorage.setItem('kayetan_messages', JSON.stringify(messages));
   return newMessage;
 };
 
 export const deleteMessage = async (id: string): Promise<boolean> => {
+  // 1. Delete from local storage instantly
+  seedLocalStorage();
+  const messages: ContactMessage[] = JSON.parse(localStorage.getItem('kayetan_messages') || '[]');
+  const filtered = messages.filter(m => m.id !== id);
+  localStorage.setItem('kayetan_messages', JSON.stringify(filtered));
+
   if (isSupabaseConfigured && supabase) {
     try {
       const { error } = await supabase
@@ -219,14 +298,9 @@ export const deleteMessage = async (id: string): Promise<boolean> => {
       if (!error) return true;
       throw error;
     } catch (err) {
-      console.error('Supabase delete message failed, attempting localStorage:', err);
+      console.error('Supabase delete message failed, local storage action completed:', err);
     }
   }
 
-  // Fallback to localStorage
-  seedLocalStorage();
-  const messages: ContactMessage[] = JSON.parse(localStorage.getItem('kayetan_messages') || '[]');
-  const filtered = messages.filter(m => m.id !== id);
-  localStorage.setItem('kayetan_messages', JSON.stringify(filtered));
   return true;
 };

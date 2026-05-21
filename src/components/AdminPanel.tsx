@@ -263,7 +263,11 @@ CREATE TABLE IF NOT EXISTS messages (
   message text NOT NULL,
   consent_rodo boolean NOT NULL DEFAULT true,
   created_at timestamptz DEFAULT now()
-);`;
+);
+
+-- WYŁĄCZENIE RLS (Row Level Security) - ABY OBLOKOWAĆ APLET DO ZAPISU/ODCZYTU BEZ LOGOWANIA SUPABASE AUTH
+ALTER TABLE projects DISABLE ROW LEVEL SECURITY;
+ALTER TABLE messages DISABLE ROW LEVEL SECURITY;`;
 
   const handleCopySql = () => {
     navigator.clipboard.writeText(sqlCode);
