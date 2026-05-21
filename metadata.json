@@ -1,0 +1,6 @@
+{
+  "name": "Portfolio Kayetan",
+  "description": "Ultra-nowoczesne, zgodne z RODO portfolio o strukturze Bento Grid z integracją Supabase, płynnym przewijaniem, nowoczesnymi animacjami i zabezpieczonym panelem administratora.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
