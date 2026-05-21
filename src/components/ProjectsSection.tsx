@@ -49,7 +49,7 @@ export default function ProjectsSection({ projects, isLoading }: ProjectsSection
         >
           <div className="flex items-center gap-2 text-indigo-400 font-mono text-xs tracking-widest uppercase mb-2">
             <Sparkles className="w-4 h-4" />
-            <span>Katalog Wdrożeń & Kod źródłowy</span>
+            <span>Katalog Wdrożeń</span>
           </div>
           <h2 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight">
             Projekty realizowane z pasją.

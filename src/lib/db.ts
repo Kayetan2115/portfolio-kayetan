@@ -67,7 +67,7 @@ export const getProjects = async (): Promise<Project[]> => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      if (data && data.length > 0) return data as Project[];
+      if (data) return data as Project[];
     } catch (err) {
       console.error('Supabase query failed, using localStorage fallback:', err);
     }
