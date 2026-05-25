@@ -38,7 +38,9 @@ interface AdminPanelProps {
 
 export default function AdminPanel({ isOpen, onClose, onRefreshMainPage }: AdminPanelProps) {
   // Auth state
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return typeof window !== 'undefined' && localStorage.getItem('kayetan_admin_pass') === 'kontaktcwlxd';
+  });
   const [passphrase, setPassphrase] = useState<string>('');
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -91,6 +93,9 @@ export default function AdminPanel({ isOpen, onClose, onRefreshMainPage }: Admin
     e.preventDefault();
     setAuthError(null);
     if (passphrase === 'kontaktcwlxd') {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('kayetan_admin_pass', passphrase);
+      }
       setIsAuthenticated(true);
       setPassphrase('');
     } else {
@@ -265,20 +270,38 @@ CREATE TABLE IF NOT EXISTS messages (
   created_at timestamptz DEFAULT now()
 );
 
--- WYŁĄCZENIE LUB SKONFIGUROWANIE RLS (Row Level Security)
--- 1. SZYBKA I PROSTA OPCJA (Dedykowana do celów testowych/deweloperskich):
-ALTER TABLE projects DISABLE ROW LEVEL SECURITY;
-ALTER TABLE messages DISABLE ROW LEVEL SECURITY;
+-- KONFIGURACJA BEZPIECZEŃSTWA RLS (CHRONI PRZED SQL INJECTION I NIEAUTORYZOWANYM DOSTĘPEM)
 
--- 2. BEZPIECZNA OPCJA PRODUKCYJNA (Zalecana, chroni bazę przed modyfikacją przez osoby trzecie):
--- ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
--- 
--- -- Wszyscy mogą przeglądać projekty (SELECT), ale nikt nie może ich modyfikować z poziomu kodu klient-side:
--- CREATE POLICY "Zezwalaj na publiczny odczyt projektów" ON projects FOR SELECT USING (true);
--- 
--- -- Każdy może wysłać wiadomość przez formularz (INSERT), ale nikt nie może ich czytać ani usuwać przez API (SELECT/DELETE):
--- CREATE POLICY "Zezwalaj tylko na wysyłanie wiadomości" ON messages FOR INSERT WITH CHECK (true);`;
+-- Opcja bezpieczna (Zalecana) - Włączamy Row Level Security na obu tabelach
+ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+
+-- Usuwamy ewentualne stare polityki
+DROP POLICY IF EXISTS "Zezwalaj na publiczny odczyt projektow" ON projects;
+DROP POLICY IF EXISTS "Pelny dostep dla admina" ON projects;
+DROP POLICY IF EXISTS "Zezwalaj na publiczne wysylanie wiadomosci" ON messages;
+DROP POLICY IF EXISTS "Odczyt i usuwanie dla admina" ON messages;
+
+-- POLITYKI DLA PROJEKTÓW
+-- 1. Kazdy moze bezpiecznie wyswietlic projekty na stronie głównej
+CREATE POLICY "Zezwalaj na publiczny odczyt projektow" ON projects
+  FOR SELECT USING (true);
+
+-- 2. Tylko zalogowany administrator z poprawnym haslem moze modyfikowac projekty
+CREATE POLICY "Pelny dostep dla admina" ON projects
+  FOR ALL TO anon
+  USING (coalesce(current_setting('request.headers', true)::json->>'x-admin-passphrase', '') = 'kontaktcwlxd')
+  WITH CHECK (coalesce(current_setting('request.headers', true)::json->>'x-admin-passphrase', '') = 'kontaktcwlxd');
+
+-- POLITYKI DLA WIADOMOŚCI FORMULARZA KONTAKTOWEGO
+-- 1. Kazdy moze wyslac nowa wiadomosc przez formularz (INSERT)
+CREATE POLICY "Zezwalaj na publiczne wysylanie wiadomosci" ON messages
+  FOR INSERT TO anon WITH CHECK (true);
+
+-- 2. Tylko zalogowany administrator z haslem moze wyswietlac i usuwac wiadomosci
+CREATE POLICY "Odczyt i usuwanie dla admina" ON messages
+  FOR ALL TO anon
+  USING (coalesce(current_setting('request.headers', true)::json->>'x-admin-passphrase', '') = 'kontaktcwlxd');`;
 
   const handleCopySql = () => {
     navigator.clipboard.writeText(sqlCode);
@@ -402,10 +425,23 @@ ALTER TABLE messages DISABLE ROW LEVEL SECURITY;
                     <button
                       id="btn-admin-refresh"
                       onClick={loadData}
-                      className="p-1 hover:bg-slate-900 text-slate-400 hover:text-white rounded-lg transition"
+                      className="p-1 hover:bg-slate-900 text-slate-400 hover:text-white rounded-lg transition cursor-pointer"
                       title="Odśwież bazę"
                     >
                       <RefreshCw className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      id="btn-admin-logout"
+                      onClick={() => {
+                        if (typeof window !== 'undefined') {
+                          localStorage.removeItem('kayetan_admin_pass');
+                        }
+                        setIsAuthenticated(false);
+                      }}
+                      className="px-2 py-1 bg-red-950/40 hover:bg-red-900/40 text-red-400 hover:text-red-300 border border-red-900/30 hover:border-red-800/50 rounded text-[10px] font-semibold transition cursor-pointer"
+                      title="Wyloguj się"
+                    >
+                      Wyloguj
                     </button>
                   </div>
                 </div>
