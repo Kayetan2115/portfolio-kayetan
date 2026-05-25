@@ -265,9 +265,20 @@ CREATE TABLE IF NOT EXISTS messages (
   created_at timestamptz DEFAULT now()
 );
 
--- WYŁĄCZENIE RLS (Row Level Security) - ABY OBLOKOWAĆ APLET DO ZAPISU/ODCZYTU BEZ LOGOWANIA SUPABASE AUTH
+-- WYŁĄCZENIE LUB SKONFIGUROWANIE RLS (Row Level Security)
+-- 1. SZYBKA I PROSTA OPCJA (Dedykowana do celów testowych/deweloperskich):
 ALTER TABLE projects DISABLE ROW LEVEL SECURITY;
-ALTER TABLE messages DISABLE ROW LEVEL SECURITY;`;
+ALTER TABLE messages DISABLE ROW LEVEL SECURITY;
+
+-- 2. BEZPIECZNA OPCJA PRODUKCYJNA (Zalecana, chroni bazę przed modyfikacją przez osoby trzecie):
+-- ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+-- 
+-- -- Wszyscy mogą przeglądać projekty (SELECT), ale nikt nie może ich modyfikować z poziomu kodu klient-side:
+-- CREATE POLICY "Zezwalaj na publiczny odczyt projektów" ON projects FOR SELECT USING (true);
+-- 
+-- -- Każdy może wysłać wiadomość przez formularz (INSERT), ale nikt nie może ich czytać ani usuwać przez API (SELECT/DELETE):
+-- CREATE POLICY "Zezwalaj tylko na wysyłanie wiadomości" ON messages FOR INSERT WITH CHECK (true);`;
 
   const handleCopySql = () => {
     navigator.clipboard.writeText(sqlCode);

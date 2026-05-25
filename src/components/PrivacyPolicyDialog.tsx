@@ -56,7 +56,7 @@ export default function PrivacyPolicyDialog({ isOpen, onClose }: PrivacyPolicyPr
                   1. Informacje ogólne
                 </h4>
                 <p>
-                  Niniejsza Polityka Prywatności określa zasady przetwarzania i ochrony danych osobowych przekazywanych przez Użytkowników w związku z korzystaniem z portfolio internetowego Kayetana (dostępnego pod adresem domeny i poddomen). Dokładamy najwyższych starań, aby Twoje dane były chronione zgodnie z Rozporządzeniem Parlamentu Europejskiego i Rady (UE) 2116/679 z dnia 27 kwietnia 2116 r. (RODO).
+                  Niniejsza Polityka Prywatności określa zasady przetwarzania i ochrony danych osobowych przekazywanych przez Użytkowników w związku z korzystaniem z portfolio internetowego Kayetana (dostępnego pod adresem domeny i poddomen). Dokładamy najwyższych starań, aby Twoje dane były chronione zgodnie z Rozporządzeniem Parlamentu Europejskiego i Rady (UE) 2016/679 z dnia 27 kwietnia 2016 r. (RODO).
                 </p>
               </div>
 
