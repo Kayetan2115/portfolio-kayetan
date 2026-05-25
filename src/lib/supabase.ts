@@ -5,9 +5,11 @@ const sanitize = (val: any): string => {
   return val.trim().replace(/^['"]|['"]$/g, '');
 };
 
-const meta = import.meta as any;
-const rawUrl = meta.env?.VITE_SUPABASE_URL || meta.env?.NEXT_PUBLIC_VITE_SUPABASE_URL || '';
-const rawKey = meta.env?.VITE_SUPABASE_ANON_KEY || meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY || '';
+// Use direct, literal references so Vite's static analysis can replace these variables during compilation
+// @ts-ignore
+const rawUrl = import.meta.env?.VITE_SUPABASE_URL || import.meta.env?.NEXT_PUBLIC_VITE_SUPABASE_URL || '';
+// @ts-ignore
+const rawKey = import.meta.env?.VITE_SUPABASE_ANON_KEY || import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY || '';
 
 const supabaseUrl = sanitize(rawUrl);
 const supabaseAnonKey = sanitize(rawKey);
@@ -21,3 +23,4 @@ export const isSupabaseConfigured = Boolean(
 export const supabase = isSupabaseConfigured 
   ? createClient(supabaseUrl, supabaseAnonKey) 
   : null;
+
